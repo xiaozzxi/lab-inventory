@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lab Inventory v2.4</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div id="app">
+        <!-- Auth module will render login or main app here -->
+    </div>
+
+    <!-- Modals -->
+    <div id="modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="modalTitle">Add Item</h2>
+                <button class="close-btn" onclick="app.closeModal()">&times;</button>
+            </div>
+            <div id="modalBody"></div>
+        </div>
+    </div>
+
+    <!-- Load modules in order - auth first -->
+    <script src="auth.js"></script>
+    <script src="core.js"></script>
+    <script src="plasmids.js"></script>
+    <script src="pcrs.js"></script>
+    <script src="geneblocks.js"></script>
+    <script src="celllines.js"></script>
+    <script src="antibodies.js"></script>
+    <script src="reagents.js"></script>
+    <script src="equipment.js"></script>
+    <script src="fridgemap.js"></script>
+    <script src="freezer80.js"></script>
+    <script src="freezer20.js"></script>
+    <script src="buffers.js"></script>
+    <script>
+        // Initialize app after all modules loaded
+        document.addEventListener('DOMContentLoaded', () => {
+            app.init();
+        });
+    </script>
+</body>
+</html>
