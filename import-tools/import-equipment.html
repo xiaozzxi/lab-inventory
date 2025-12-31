@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Import Equipment Data</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #f5f5f5;
+            padding: 20px;
+            line-height: 1.6;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            padding: 30px;
+        }
+        h1 { color: #333; margin-bottom: 10px; }
+        .subtitle { color: #666; margin-bottom: 20px; }
+        .stats {
+            display: flex;
+            gap: 20px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+        .stat-box {
+            background: #e8f4fd;
+            padding: 15px 25px;
+            border-radius: 8px;
+            text-align: center;
+        }
+        .stat-box .number { font-size: 2em; font-weight: bold; color: #2196F3; }
+        .stat-box .label { color: #666; font-size: 0.9em; }
+        .warning {
+            background: #fff3e0;
+            border-left: 4px solid #ff9800;
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 0 8px 8px 0;
+        }
+        .success {
+            background: #e8f5e9;
+            border-left: 4px solid #4caf50;
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 0 8px 8px 0;
+        }
+        .btn {
+            padding: 12px 30px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 1em;
+            margin: 5px;
+            transition: all 0.2s;
+        }
+        .btn-primary {
+            background: #2196F3;
+            color: white;
+        }
+        .btn-primary:hover { background: #1976D2; }
+        .btn-danger {
+            background: #f44336;
+            color: white;
+        }
+        .btn-danger:hover { background: #d32f2f; }
+        .btn-secondary {
+            background: #9e9e9e;
+            color: white;
+        }
+        .btn-secondary:hover { background: #757575; }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+            font-size: 0.9em;
+        }
+        th, td {
+            padding: 10px;
+            text-align: left;
+            border-bottom: 1px solid #eee;
+        }
+        th {
+            background: #f8f9fa;
+            font-weight: 600;
+            position: sticky;
+            top: 0;
+        }
+        tr:hover { background: #f5f5f5; }
+        .table-container {
+            max-height: 500px;
+            overflow-y: auto;
+            border: 1px solid #eee;
+            border-radius: 8px;
+        }
+        .empty { color: #999; font-style: italic; }
+        .actions { margin-top: 20px; }
+        #status { margin-top: 15px; padding: 10px; border-radius: 4px; display: none; }
+        .cleaning-notes {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 20px 0;
+        }
+        .cleaning-notes h3 { margin-bottom: 10px; }
+        .cleaning-notes ul { margin-left: 20px; }
+        .cleaning-notes li { margin: 5px 0; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔧 Import Equipment Data</h1>
+        <p class="subtitle">Cleaned data from Equip.xlsx ready to import into Lab Inventory</p>
+        
+        <div class="stats">
+            <div class="stat-box">
+                <div class="number" id="totalCount">191</div>
+                <div class="label">Total Equipment</div>
+            </div>
+            <div class="stat-box">
+                <div class="number" id="withVendor">0</div>
+                <div class="label">With Vendor Info</div>
+            </div>
+            <div class="stat-box">
+                <div class="number" id="withCatalog">0</div>
+                <div class="label">With Catalog #</div>
+            </div>
+        </div>
+
+        <div class="cleaning-notes">
+            <h3>Data Cleaning Applied:</h3>
+            <ul>
+                <li><strong>Duplicates removed:</strong> 18 duplicate entries (Fridge undercounter, Tabletop centrifuge, etc.)</li>
+                <li><strong>Merged columns parsed:</strong> ~27 entries with vendor/catalog merged (e.g., "Beckman #355603" → Vendor: Beckman, Cat#: 355603)</li>
+                <li><strong>Eppendorf items fixed:</strong> Catalog-only entries (e.g., "#022266209") assigned to Eppendorf vendor</li>
+                <li><strong>Vendor names normalized:</strong> Biorad → Bio-Rad, α labs → Alpha Labs</li>
+                <li><strong>Location column added:</strong> Empty, ready for you to populate</li>
+            </ul>
+        </div>
+
+        <div class="warning" id="existingWarning" style="display:none;">
+            ⚠️ <strong>Warning:</strong> You already have <span id="existingCount">0</span> equipment items in your database. 
+            Importing will add to or replace your existing data.
+        </div>
+
+        <div class="actions">
+            <button class="btn btn-primary" onclick="importData()">📥 Import All Equipment</button>
+            <button class="btn btn-secondary" onclick="previewData()">👁️ Preview Data</button>
+            <button class="btn btn-danger" onclick="clearExisting()">🗑️ Clear Existing Data</button>
+        </div>
+
+        <div id="status"></div>
+
+        <div class="table-container" id="previewContainer" style="display:none;">
+            <table>
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Name</th>
+                        <th>Vendor</th>
+                        <th>Catalog #</th>
+                        <th>Location</th>
+                        <th>Notes</th>
+                    </tr>
+                </thead>
+                <tbody id="previewBody"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        // Cleaned equipment data
+        const equipmentData = [{"name": "Filter paper for WB", "vendor": "Bio-Rad", "catalog": "1703932", "location": "", "notes": ""}, {"name": "Miniprep columns", "vendor": "NBS Biologicals", "catalog": "SD5005.SIZE.100", "location": "", "notes": ""}, {"name": "Nitrocellulose", "vendor": "Bio-Rad", "catalog": "1620112", "location": "", "notes": ""}, {"name": "Plastic folder pockets", "vendor": "Banner", "catalog": "12265", "location": "", "notes": ""}, {"name": "PCR tubes", "vendor": "Novas", "catalog": "PCR-02F", "location": "", "notes": ""}, {"name": "Tips: 1ml", "vendor": "Starlab", "catalog": "70.3060.100", "location": "", "notes": ""}, {"name": "Tips: 200ul", "vendor": "Starlab", "catalog": "70.3030.100", "location": "", "notes": ""}, {"name": "Tips: 10ul", "vendor": "Starlab", "catalog": "70.3010.100", "location": "", "notes": ""}, {"name": "PCR strips", "vendor": "Novas", "catalog": "PCR-0208", "location": "", "notes": ""}, {"name": "Gel loadting tips", "vendor": "Starlab", "catalog": "I1022-0600", "location": "", "notes": ""}, {"name": "Gel Loading Flat Tips 0.37mm OD Pk200", "vendor": "Gilson Scientific", "catalog": "F1733181", "location": "", "notes": ""}, {"name": "Aluminum Foil", "vendor": "", "catalog": "", "location": "", "notes": ""}, {"name": "Beckman Centrifuge Bottles, Polycarbonate (no caps)", "vendor": "Beckman", "catalog": "355603", "location": "", "notes": ""}, {"name": "Beckman Centrifuge Bottles, Polycarbonate 50ml", "vendor": "Beckman", "catalog": "357002", "location": "", "notes": ""}, {"name": "Beckman Centrifuge Tube Tops TLA110", "vendor": "", "catalog": "", "location": "", "notes": ""}, {"name": "Beckman Centrifuge Tubes 1.5ml", "vendor": "Beckman", "catalog": "357448", "location": "", "notes": ""}, {"name": "Beckman Centrifuge Tubes 70.1Ti", "vendor": "Beckman", "catalog": "355630", "location": "", "notes": ""}, {"name": "Beckman Centrifuge Tubes MLA80 Polycarbonate", "vendor": "Beckman", "catalog": "355647", "location": "", "notes": ""}, {"name": "Beckman Centrifuge Tubes TLA100.2 Polyallomer", "vendor": "Beckman", "catalog": "347357", "location": "", "notes": ""}, {"name": "Beckman Centrifuge Tubes TLA100.2 Polycarbonate", "vendor": "Beckman", "catalog": "343778", "location": "", "notes": ""}, {"name": "Beckman Centrifuge Tubes TLA100.3 3ml", "vendor": "Beckman", "catalog": "349622", "location": "", "notes": ""}, {"name": "Beckman Centrifuge Tubes TLA110", "vendor": "Beckman", "catalog": "355645", "location": "", "notes": ""}, {"name": "Beckman Centrifuge Tubes TLA120.1", "vendor": "Beckman", "catalog": "", "location": "", "notes": ""}, {"name": "Beckman Tube Adaptors for 1.5ml TLA100.3", "vendor": "", "catalog": "", "location": "", "notes": ""}, {"name": "Beckman Tube Adaptors for 1.5ml TLA110", "vendor": "", "catalog": "", "location": "", "notes": ""}, {"name": "Beckman Ultracentrifuge", "vendor": "", "catalog": "", "location": "", "notes": ""}, {"name": "Brush, Nylon", "vendor": "", "catalog": "", "location": "", "notes": ""}, {"name": "Brush, Wooden", "vendor": "", "catalog": "", "location": "", "notes": ""}, {"name": "Centrifugal Filter Devices, Ultracel 10K", "vendor": "Millipore", "catalog": "Ultra-4 (Ultracel 10K)", "location": "", "notes": ""}, {"name": "Centrifugal Filter Devices, Ultracel 30K", "vendor": "Millipore", "catalog": "Ultra-4 (Ultracel 30K)", "location": "", "notes": ""}, {"name": "Column, Disposable 10ml Polypropylene", "vendor": "Pierce", "catalog": "29924", "location": "", "notes": ""}, {"name": "Column, Disposable 1ml", "vendor": "Bio-Rad", "catalog": "", "location": "", "notes": ""}, {"name": "Column, Disposable 5ml Polypropylene", "vendor": "Pierce", "catalog": "29922", "location": "", "notes": ""}, {"name": "Column, Glass Various", "vendor": "", "catalog": "", "location": "", "notes": ""}, {"name": "Column, Plastic M", "vendor": "", "catalog": "", "location": "", "notes": ""}, {"name": "Column, Plastic S", "vendor": "", "catalog": "", "location": "", "notes": ""}, {"name": "Column, Spin 900μl", "vendor": "Pierce", "catalog": "69705", "location": "", "notes": ""}, {"name": "Conical Tubes 50ml", "vendor": "", "catalog": "", "location": "", "notes": ""}, {"name": "Cryo Freezing Containers", "vendor": "Nalgene", "catalog": "", "location": "", "notes": ""}, {"name": "Curved Spring Forceps", "vendor": "", "catalog": "", "location": "", "notes": ""}, {"name": "Dialysis Cassette 10,000 MWCO 0.1-0.5ml", "vendor": "Pierce Thermo Scientific", "catalog": "66383", "location": "", "notes": ""}, {"name": "Dialysis Cassette 10,000 MWCO 0.5-3ml", "vendor": "Pierce Thermo Scientific", "catalog": "66380", "location": "", "notes": ""}, {"name": "Dialysis Cassette 10,000 MWCO 3-12ml", "vendor": "Pierce Thermo Scientific", "catalog": "66810", "location": "", "notes": ""}, {"name": "Dialysis Cassette 3500 MWCO 0.5-3ml", "vendor": "Pierce Thermo Scientific", "catalog": "66330", "location": "", "notes": ""}, {"name": "End-over-End Mixer", "vendor": "", "catalog": "", "location": "", "notes": ""}, {"name": "Eppendorf Combitips Plus - 1.0ml", "vendor": "Eppendorf", "catalog": "022266209", "location": "", "notes": ""}, {"name": "Eppendorf Combitips Plus - 10ml", "vendor": "Eppendorf", "catalog": "022266501", "location": "", "notes": ""}, {"name": "Eppendorf Combitips Plus - 2.5ml", "vendor": "Eppendorf", "catalog": "022266306", "location": "", "notes": ""}, {"name": "Eppendorf Combitips Plus - 5ml", "vendor": "Eppendorf", "catalog": "022266403", "location": "", "notes": ""}, {"name": "Eppendorf Repeater", "vendor": "", "catalog": "", "location": "", "notes": ""}, {"name": "Falcon Tubes 15ml", "vendor": "", "catalog": "", "location": "", "notes": ""}, {"name": "Film Cassettes", "vendor": "", "catalog": "", "location": "", "notes": ""}, {"name": "Flat Blades", "vendor": "", "catalog": "", "location": "", "notes": ""}, {"name": "Freezer -20°C", "vendor": "", "catalog": "", "location": "", "notes": ""}, {"name": "Fridge", "vendor": "", "catalog": "", "location": "", "notes": ""}, {"name": "Gel Apparatus", "vendor": "", "catalog": "", "location": "", "notes": ""}, {"name": "Gel Combs", "vendor": "", "catalog": "", "location": "", "notes": ""}, {"name": "Gel Plates - M Glass Plates - sets", "vendor": "", "catalog": "", "location": "", "notes": ""}, {"name": "Glass Plates - Short Plates", "vendor": "Bio-Rad", "catalog": "", "location": "", "notes": ""}, {"name": "Glass Plates - Spacer Plates 0.75mm Spacers", "vendor": "Bio-Rad", "catalog": "", "location": "", "notes": ""}, {"name": "Graduated Cylinders", "vendor": "", "catalog": "", "location": "", "notes": ""}, {"name": "Grant Heat Blocks", "vendor": "", "catalog": "", "location": "", "notes": ""}, {"name": "Hamilton Syringe", "vendor": "Hamilton", "catalog": "8050", "location": "", "notes": ""}, {"name": "Hi Trap DEAE Fast Flow Columns, 1ml", "vendor": "GE Healthcare", "catalog": "17-5055-01", "location": "", "notes": ""}, {"name": "Microcentrifuge", "vendor": "", "catalog": "", "location": "", "notes": ""}, {"name": "Mini Microcentrifuge", "vendor": "Jencon PLS", "catalog": "", "location": "", "notes": ""}, {"name": "Microtube 0.2ml thin wall", "vendor": "Sarstedt", "catalog": "", "location": "", "notes": ""}, {"name": "Microtube 0.5ml", "vendor": "Sarstedt", "catalog": "", "location": "", "notes": ""}, {"name": "Microtube 1.5ml", "vendor": "Sarstedt", "catalog": "", "location": "", "notes": ""}, {"name": "Microtube 1.7ml", "vendor": "Sarstedt", "catalog": "", "location": "", "notes": ""}, {"name": "Microtube 2.0ml", "vendor": "Sarstedt", "catalog": "", "location": "", "notes": ""}, {"name": "Microwave", "vendor": "", "catalog": "", "location": "", "notes": ""}, {"name": "Orbital Shaker", "vendor": "", "catalog": "", "location": "", "notes": ""}, {"name": "Parafilm", "vendor": "", "catalog": "", "location": "", "notes": ""}, {"name": "Pastette, Fine Tip Maxi Plastic", "vendor": "Alpha Labs", "catalog": "LW4234", "location": "", "notes": ""}, {"name": "PCR Machine", "vendor": "", "catalog": "", "location": "", "notes": ""}, {"name": "Peristaltic Pump", "vendor": "", "catalog": "", "location": "", "notes": ""}, {"name": "pH paper", "vendor": "", "catalog": "", "location": "", "notes": ""}, {"name": "Pipetteman P10", "vendor": "", "catalog": "", "location": "", "notes": ""}, {"name": "Pipetteman P1000", "vendor": "", "catalog": "", "location": "", "notes": ""}, {"name": "Pipetteman P2", "vendor": "", "catalog": "", "location": "", "notes": ""}, {"name": "Pipetteman P20", "vendor": "", "catalog": "", "location": "", "notes": ""}, {"name": "Pipetteman P200", "vendor": "", "catalog": "", "location": "", "notes": ""}, {"name": "Pipettor - 8 channel", "vendor": "", "catalog": "", "location": "", "notes": ""}, {"name": "Power Pipette", "vendor": "", "catalog": "", "location": "", "notes": ""}, {"name": "Powersource 250V", "vendor": "", "catalog": "", "location": "", "notes": ""}, {"name": "Rotor TL100.3", "vendor": "", "catalog": "", "location": "", "notes": ""}, {"name": "Rubber Stopper, Red 2 hole 41 mm", "vendor": "", "catalog": "", "location": "", "notes": ""}, {"name": "Rubber Stopper, Red 1 hole 35mm", "vendor": "", "catalog": "", "location": "", "notes": ""}, {"name": "Saran Wrap", "vendor": "", "catalog": "", "location": "", "notes": ""}, {"name": "Scale Spoon - L", "vendor": "", "catalog": "", "location": "", "notes": ""}, {"name": "Scale Spoon - M", "vendor": "", "catalog": "", "location": "", "notes": ""}, {"name": "Scale Spoon - S", "vendor": "", "catalog": "", "location": "", "notes": ""}, {"name": "Scale Spoon - XS", "vendor": "", "catalog": "", "location": "", "notes": ""}, {"name": "Scales", "vendor": "", "catalog": "", "location": "", "notes": ""}, {"name": "Sorvall Centrifuge", "vendor": "", "catalog": "", "location": "", "notes": ""}, {"name": "Storage Phosphor Screens", "vendor": "", "catalog": "", "location": "", "notes": ""}, {"name": "Thermomixer", "vendor": "", "catalog": "", "location": "", "notes": ""}, {"name": "Timer", "vendor": "", "catalog": "", "location": "", "notes": ""}, {"name": "Tray Containers", "vendor": "", "catalog": "", "location": "", "notes": ""}, {"name": "Vacuum Aspirator", "vendor": "", "catalog": "", "location": "", "notes": ""}, {"name": "Vacuum Manifold", "vendor": "", "catalog": "", "location": "", "notes": ""}, {"name": "Vortexer", "vendor": "", "catalog": "", "location": "", "notes": ""}, {"name": "Water Bath", "vendor": "", "catalog": "", "location": "", "notes": ""}, {"name": "Weigh Boats", "vendor": "", "catalog": "", "location": "", "notes": ""}, {"name": "Weigh Paper", "vendor": "", "catalog": "", "location": "", "notes": ""}, {"name": "Western Blot Cases", "vendor": "", "catalog": "", "location": "", "notes": ""}, {"name": "Columns, Prepacked Desalting PD-10", "vendor": "GE Healthcare", "catalog": "17-0851-01", "location": "", "notes": ""}, {"name": "Xray film", "vendor": "", "catalog": "", "location": "", "notes": ""}, {"name": "Freezer Sample Boxes", "vendor": "", "catalog": "", "location": "", "notes": ""}, {"name": "Imaging system Chemidoc MP or similar", "vendor": "", "catalog": "", "location": "", "notes": ""}, {"name": "Typhoon reader", "vendor": "", "catalog": "", "location": "", "notes": ""}, {"name": "Ultracentrifuge tabletop hot lab", "vendor": "", "catalog": "", "location": "", "notes": ""}, {"name": "Rotor TLS-55", "vendor": "", "catalog": "", "location": "", "notes": ""}, {"name": "Rotor TLA120.1", "vendor": "", "catalog": "", "location": "", "notes": ""}, {"name": "Rotor TLA120.2", "vendor": "", "catalog": "", "location": "", "notes": ""}, {"name": "Rotor TLA 100.3", "vendor": "", "catalog": "", "location": "", "notes": ""}, {"name": "Rotor TLA-110", "vendor": "", "catalog": "", "location": "", "notes": ""}, {"name": "Rotor TLA-55", "vendor": "", "catalog": "", "location": "", "notes": ""}, {"name": "Rotor MLA-80", "vendor": "", "catalog": "", "location": "", "notes": ""}, {"name": "Rotor MLS50", "vendor": "", "catalog": "", "location": "", "notes": ""}, {"name": "UV lamp for crosslinking", "vendor": "", "catalog": "", "location": "", "notes": ""}, {"name": "Waterbath", "vendor": "", "catalog": "", "location": "", "notes": ""}, {"name": "Fridge undercounter", "vendor": "", "catalog": "", "location": "", "notes": ""}, {"name": "Freezer undercounter", "vendor": "", "catalog": "", "location": "", "notes": ""}, {"name": "Heat block static/dry", "vendor": "", "catalog": "", "location": "", "notes": ""}, {"name": "Incubator (ideally with CO2)", "vendor": "", "catalog": "", "location": "", "notes": ""}, {"name": "Tabletop centrifuge Eppis", "vendor": "", "catalog": "", "location": "", "notes": ""}, {"name": "Tabletop centrifuge refrigerated", "vendor": "", "catalog": "", "location": "", "notes": ""}, {"name": "Phosphorscreen", "vendor": "", "catalog": "", "location": "", "notes": ""}, {"name": "Screen/blot cassette", "vendor": "", "catalog": "", "location": "", "notes": ""}, {"name": "Lightbox", "vendor": "", "catalog": "", "location": "", "notes": ""}, {"name": "Gel dryer", "vendor": "", "catalog": "", "location": "", "notes": ""}, {"name": "PAGE gel running chamber", "vendor": "", "catalog": "", "location": "", "notes": ""}, {"name": "Power pack", "vendor": "", "catalog": "", "location": "", "notes": ""}, {"name": "PCR cycler", "vendor": "", "catalog": "", "location": "", "notes": ""}, {"name": "Centrifuge falcons refrigerated (15/50 ml)", "vendor": "", "catalog": "", "location": "", "notes": ""}, {"name": "Centrifuge for large volumes (bacteria/cells)", "vendor": "", "catalog": "", "location": "", "notes": ""}, {"name": "Rotor JLA-8.1000 (1L)", "vendor": "", "catalog": "", "location": "", "notes": ""}, {"name": "Rotor JLA-16.250 (250ml)", "vendor": "", "catalog": "", "location": "", "notes": ""}, {"name": "Rotor JA-25.50 (50 ml)", "vendor": "", "catalog": "", "location": "", "notes": ""}, {"name": "Rotor SW40 Ti", "vendor": "", "catalog": "", "location": "", "notes": ""}, {"name": "Waterbaths", "vendor": "", "catalog": "", "location": "", "notes": ""}, {"name": "Vortex", "vendor": "", "catalog": "", "location": "", "notes": ""}, {"name": "Mini centrifuge", "vendor": "", "catalog": "", "location": "", "notes": ""}, {"name": "Freezer large", "vendor": "", "catalog": "", "location": "", "notes": ""}, {"name": "Fridge large", "vendor": "", "catalog": "", "location": "", "notes": ""}, {"name": "Freezer -80 large", "vendor": "", "catalog": "", "location": "", "notes": ""}, {"name": "Freezer -80 small", "vendor": "", "catalog": "", "location": "", "notes": ""}, {"name": "Liquid N2 Storage", "vendor": "", "catalog": "", "location": "", "notes": ""}, {"name": "Vacuum pump", "vendor": "", "catalog": "", "location": "", "notes": ""}, {"name": "Pipette set x6", "vendor": "", "catalog": "", "location": "", "notes": ""}, {"name": "Multichannel pipette 1-10µl", "vendor": "", "catalog": "", "location": "", "notes": ""}, {"name": "Multichannel pipette 20-200 µl", "vendor": "", "catalog": "", "location": "", "notes": ""}, {"name": "Pipet boy", "vendor": "", "catalog": "", "location": "", "notes": ""}, {"name": "Repeat pipette Multipette E3", "vendor": "", "catalog": "", "location": "", "notes": ""}, {"name": "Repeat pipette Eppendorf Explorer", "vendor": "", "catalog": "", "location": "", "notes": ""}, {"name": "Roller mixer (falcons)", "vendor": "", "catalog": "", "location": "", "notes": ""}, {"name": "Nanodrop One", "vendor": "", "catalog": "", "location": "", "notes": ""}, {"name": "WB Blot module", "vendor": "", "catalog": "", "location": "", "notes": ""}, {"name": "Agarose gel running chamber", "vendor": "", "catalog": "", "location": "", "notes": ""}, {"name": "Incubator plates (E.coli)", "vendor": "", "catalog": "", "location": "", "notes": ""}, {"name": "Incubator shaking tubes (E.coli)", "vendor": "", "catalog": "", "location": "", "notes": ""}, {"name": "Incubator shaking flasks (E.coli)", "vendor": "", "catalog": "", "location": "", "notes": ""}, {"name": "Magnetic stirrer", "vendor": "", "catalog": "", "location": "", "notes": ""}, {"name": "Magnetic stirrer hot plate", "vendor": "", "catalog": "", "location": "", "notes": ""}, {"name": "Ice machine", "vendor": "", "catalog": "", "location": "", "notes": ""}, {"name": "Scale analytical", "vendor": "", "catalog": "", "location": "", "notes": ""}, {"name": "Scale standard", "vendor": "", "catalog": "", "location": "", "notes": ""}, {"name": "UV Illuminator", "vendor": "", "catalog": "", "location": "", "notes": ""}, {"name": "Heat block with shaking", "vendor": "", "catalog": "", "location": "", "notes": ""}, {"name": "Dilvac Dewar Flask", "vendor": "", "catalog": "", "location": "", "notes": ""}, {"name": "KIMBLE Dounce tissue grinder set-7mL", "vendor": "", "catalog": "", "location": "", "notes": ""}, {"name": "KIMBLE Dounce tissue grinder set-40mL", "vendor": "", "catalog": "", "location": "", "notes": ""}, {"name": "TC hood", "vendor": "", "catalog": "", "location": "", "notes": ""}, {"name": "Incubator CO2 (TC plates)", "vendor": "", "catalog": "", "location": "", "notes": ""}, {"name": "Incubator CO2 (liquid TC, shaking)", "vendor": "", "catalog": "", "location": "", "notes": ""}, {"name": "Waterbath dry", "vendor": "", "catalog": "", "location": "", "notes": ""}, {"name": "TC microscope", "vendor": "", "catalog": "", "location": "", "notes": ""}, {"name": "cell counter", "vendor": "", "catalog": "", "location": "", "notes": ""}, {"name": "Pipette set", "vendor": "", "catalog": "", "location": "", "notes": ""}, {"name": "Centrifuge falcons", "vendor": "", "catalog": "", "location": "", "notes": ""}, {"name": "Orbital shaker for blots", "vendor": "", "catalog": "", "location": "", "notes": ""}, {"name": "Rotating wheel/device", "vendor": "", "catalog": "", "location": "", "notes": ""}, {"name": "Sonicator cell lysis", "vendor": "", "catalog": "", "location": "", "notes": ""}, {"name": "Laptop", "vendor": "", "catalog": "", "location": "", "notes": ""}, {"name": "Monitor", "vendor": "", "catalog": "", "location": "", "notes": ""}, {"name": "Peripherals", "vendor": "", "catalog": "", "location": "", "notes": ""}, {"name": "Gradient fractionator with UV-Vis spectrometer", "vendor": "", "catalog": "", "location": "", "notes": ""}, {"name": "Äkta Go or Pure", "vendor": "", "catalog": "", "location": "", "notes": ""}, {"name": "Film developer", "vendor": "", "catalog": "", "location": "", "notes": ""}];
+
+        // Add IDs to data
+        const dataWithIds = equipmentData.map((e, i) => ({
+            id: `EQ${String(i + 1).padStart(3, '0')}`,
+            ...e
+        }));
+
+        // Update stats
+        function updateStats() {
+            const withVendor = dataWithIds.filter(e => e.vendor).length;
+            const withCatalog = dataWithIds.filter(e => e.catalog).length;
+            document.getElementById('totalCount').textContent = dataWithIds.length;
+            document.getElementById('withVendor').textContent = withVendor;
+            document.getElementById('withCatalog').textContent = withCatalog;
+
+            // Check existing data
+            const existing = JSON.parse(localStorage.getItem('equipmentData') || '[]');
+            if (existing.length > 0) {
+                document.getElementById('existingWarning').style.display = 'block';
+                document.getElementById('existingCount').textContent = existing.length;
+            }
+        }
+
+        function showStatus(message, type) {
+            const status = document.getElementById('status');
+            status.textContent = message;
+            status.style.display = 'block';
+            status.style.background = type === 'success' ? '#e8f5e9' : '#ffebee';
+            status.style.color = type === 'success' ? '#2e7d32' : '#c62828';
+        }
+
+        function importData() {
+            localStorage.setItem('equipmentData', JSON.stringify(dataWithIds));
+            showStatus(`✅ Successfully imported ${dataWithIds.length} equipment items! You can now close this page and use the main Lab Inventory.`, 'success');
+            updateStats();
+        }
+
+        function clearExisting() {
+            if (confirm('Are you sure you want to clear all existing equipment data?')) {
+                localStorage.removeItem('equipmentData');
+                showStatus('🗑️ Existing equipment data cleared.', 'success');
+                document.getElementById('existingWarning').style.display = 'none';
+            }
+        }
+
+        function previewData() {
+            const container = document.getElementById('previewContainer');
+            const tbody = document.getElementById('previewBody');
+            
+            if (container.style.display === 'none') {
+                tbody.innerHTML = dataWithIds.map(e => `
+                    <tr>
+                        <td>${e.id}</td>
+                        <td>${e.name}</td>
+                        <td>${e.vendor || '<span class="empty">-</span>'}</td>
+                        <td>${e.catalog || '<span class="empty">-</span>'}</td>
+                        <td>${e.location || '<span class="empty">-</span>'}</td>
+                        <td>${e.notes || '<span class="empty">-</span>'}</td>
+                    </tr>
+                `).join('');
+                container.style.display = 'block';
+            } else {
+                container.style.display = 'none';
+            }
+        }
+
+        // Initialize
+        updateStats();
+    </script>
+</body>
+</html>

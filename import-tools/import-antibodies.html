@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html><head><meta charset="UTF-8"><title>Import Antibodies</title>
+<style>
+body{font-family:system-ui,sans-serif;max-width:900px;margin:50px auto;padding:20px;background:#f5f5f5}
+.card{background:white;border-radius:12px;padding:30px;box-shadow:0 2px 10px rgba(0,0,0,0.1)}
+h1{color:#333;margin-bottom:10px}
+p{color:#666;margin-bottom:25px}
+.btn{background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);color:white;padding:15px 30px;border:none;border-radius:8px;cursor:pointer;font-size:16px;font-weight:600;transition:transform 0.2s}
+.btn:hover{transform:translateY(-2px)}
+.btn:active{transform:translateY(0)}
+#result{margin-top:20px;padding:15px;border-radius:8px}
+.success{background:#d4edda;color:#155724;border:1px solid #c3e6cb}
+table{width:100%;border-collapse:collapse;margin-top:20px;font-size:13px}
+th{background:#667eea;color:white;padding:10px;text-align:left}
+td{padding:8px 10px;border-bottom:1px solid #eee}
+tr:hover{background:#f8f9fa}
+.count{font-size:14px;color:#666;margin-top:15px}
+</style>
+</head><body>
+<div class="card">
+<h1>🧬 Import Antibodies</h1>
+<p>This will import 19 antibodies into your Lab Inventory localStorage. Run this once, then open index.html.</p>
+<button class="btn" onclick="importData()">Import Antibodies</button>
+<div id="result"></div>
+</div>
+<script>
+const antibodies = [
+  {"id": "AB001", "name": "EMC1", "host": "Rabbit", "clonality": "", "application": "WB", "wbDilution": "1:2000", "ipAmount": "", "supplier": "Bethyl", "catalog": "A305-604A-M", "lot": "", "storage": "", "location": "", "rrid": "", "notes": "Works well for blotting.", "dateAdded": ""},
+  {"id": "AB002", "name": "EMC1", "host": "", "clonality": "", "application": "", "wbDilution": "", "ipAmount": "", "supplier": "Abcam", "catalog": "ab153890", "lot": "", "storage": "", "location": "", "rrid": "", "notes": "", "dateAdded": ""},
+  {"id": "AB003", "name": "EMC2 (TTC35)", "host": "Rabbit", "clonality": "", "application": "WB, IP", "wbDilution": "1:2000", "ipAmount": "1:500", "supplier": "Proteintech", "catalog": "25443-1-AP", "lot": "", "storage": "", "location": "", "rrid": "", "notes": "two bands between 25 and 37 kDa, lower band is EMC2. Great antibody.", "dateAdded": ""},
+  {"id": "AB004", "name": "EMC3 (TMEM111)", "host": "Rabbit", "clonality": "", "application": "WB", "wbDilution": "1:5000", "ipAmount": "", "supplier": "Invitrogen", "catalog": "711771", "lot": "", "storage": "", "location": "", "rrid": "", "notes": "works great for EMC3 western blot, strong signal, works well for denaturing IP.", "dateAdded": ""},
+  {"id": "AB005", "name": "EMC3 (TMEM111)", "host": "Rabbit", "clonality": "", "application": "WB", "wbDilution": "1:1000", "ipAmount": "", "supplier": "Abcam", "catalog": "ab175537", "lot": "", "storage": "", "location": "", "rrid": "", "notes": "band at approx. 28 kDa, strong unspecific bands at higher molecular weight", "dateAdded": ""},
+  {"id": "AB006", "name": "EMC4 (TMEM85)", "host": "Rabbit", "clonality": "", "application": "WB", "wbDilution": "1:2000", "ipAmount": "", "supplier": "Abcam", "catalog": "ab123719", "lot": "", "storage": "", "location": "", "rrid": "", "notes": "band at approx. 28 kDa. Great antibody.", "dateAdded": ""},
+  {"id": "AB007", "name": "EMC4 (TMEM85)", "host": "Rabbit", "clonality": "", "application": "IP", "wbDilution": "", "ipAmount": "1:1000", "supplier": "Bethyl", "catalog": "A305-752A-M", "lot": "", "storage": "", "location": "", "rrid": "", "notes": "Three hour incubation works well for denaturing IP", "dateAdded": ""},
+  {"id": "AB008", "name": "EMC5 (MMGT1)", "host": "Rabbit", "clonality": "", "application": "WB", "wbDilution": "1:1000", "ipAmount": "", "supplier": "Abcam", "catalog": "ab174366", "lot": "", "storage": "", "location": "", "rrid": "", "notes": "band at approx. 15 kDa. Great antibody.", "dateAdded": ""},
+  {"id": "AB009", "name": "EMC6 (TMEM93)", "host": "Rabbit", "clonality": "", "application": "WB", "wbDilution": "1:1000", "ipAmount": "", "supplier": "Abcam", "catalog": "ab84902", "lot": "", "storage": "", "location": "", "rrid": "", "notes": "band at approx. 12 kDa. Great antibody.", "dateAdded": ""},
+  {"id": "AB010", "name": "EMC7 (C11orf3/C15orf24)", "host": "Rabbit", "clonality": "", "application": "WB", "wbDilution": "1:1000", "ipAmount": "", "supplier": "Bethyl", "catalog": "A305-678A-M", "lot": "", "storage": "", "location": "", "rrid": "", "notes": "decent signal with overnight incubation; 1 band around 26 kDa", "dateAdded": ""},
+  {"id": "AB011", "name": "EMC8 (COX4NB)", "host": "Rabbit", "clonality": "", "application": "WB", "wbDilution": "1:500", "ipAmount": "", "supplier": "Abcam", "catalog": "ab180065", "lot": "", "storage": "", "location": "", "rrid": "", "notes": "double band between 20 and 25 kDa. EMC8 is the upper band. Lower band is unspecific.", "dateAdded": ""},
+  {"id": "AB012", "name": "EMC9 (C14orf122)", "host": "Rabbit", "clonality": "", "application": "WB", "wbDilution": "1:500", "ipAmount": "", "supplier": "Abgent", "catalog": "AP5632b", "lot": "", "storage": "", "location": "", "rrid": "", "notes": "weak signal in HEK293, U2OS", "dateAdded": ""},
+  {"id": "AB013", "name": "EMC10 (C19orf63)", "host": "Rabbit", "clonality": "", "application": "WB", "wbDilution": "1:2000", "ipAmount": "", "supplier": "Abcam", "catalog": "ab180148", "lot": "", "storage": "", "location": "", "rrid": "", "notes": "EMC10 is detected as triple band around 26 kDa. All three bands are EMC10.", "dateAdded": ""},
+  {"id": "AB014", "name": "SRP54 antibody", "host": "Mouse", "clonality": "", "application": "WB, IP", "wbDilution": "1:2000", "ipAmount": "2uL", "supplier": "BD Biosciences", "catalog": "610940", "lot": "", "storage": "", "location": "", "rrid": "", "notes": "", "dateAdded": ""},
+  {"id": "AB015", "name": "Sec61α", "host": "Rabbit", "clonality": "", "application": "WB, IP", "wbDilution": "1:5000", "ipAmount": "2uL", "supplier": "Hegde lab", "catalog": "", "lot": "", "storage": "", "location": "", "rrid": "", "notes": "", "dateAdded": ""},
+  {"id": "AB016", "name": "Sec61β", "host": "Rabbit", "clonality": "", "application": "WB, IP", "wbDilution": "1:5000", "ipAmount": "1uL", "supplier": "Hegde lab", "catalog": "", "lot": "", "storage": "", "location": "", "rrid": "", "notes": "", "dateAdded": ""},
+  {"id": "AB017", "name": "Peroxidase AffiniPure Goat Anti-Rabbit IgG (H+L)", "host": "Goat", "clonality": "", "application": "", "wbDilution": "", "ipAmount": "", "supplier": "Jackson ImmunoResearch", "catalog": "111-035-003", "lot": "", "storage": "", "location": "", "rrid": "", "notes": "", "dateAdded": ""},
+  {"id": "AB018", "name": "GABRA1", "host": "Rabbit", "clonality": "", "application": "", "wbDilution": "", "ipAmount": "", "supplier": "Invitrogen", "catalog": "PA5-79291", "lot": "", "storage": "", "location": "", "rrid": "", "notes": "", "dateAdded": ""},
+  {"id": "AB019", "name": "PE-FLAG", "host": "Rat", "clonality": "", "application": "", "wbDilution": "", "ipAmount": "", "supplier": "BioLegend", "catalog": "637310", "lot": "", "storage": "", "location": "", "rrid": "", "notes": "", "dateAdded": ""}
+];
+
+function importData() {
+    localStorage.setItem('antibodiesData', JSON.stringify(antibodies));
+    const nextIds = JSON.parse(localStorage.getItem('nextIds') || '{}');
+    nextIds.antibody = 'AB020';
+    localStorage.setItem('nextIds', JSON.stringify(nextIds));
+    
+    let html = '<div class="success">✓ Successfully imported ' + antibodies.length + ' antibodies!</div>';
+    html += '<p class="count">Next ID will be: AB020</p>';
+    html += '<table><thead><tr><th>ID</th><th>Target</th><th>Vendor</th><th>Catalog #</th><th>Host</th><th>WB</th><th>IP</th><th>RRID</th></tr></thead><tbody>';
+    antibodies.forEach(a => {
+        html += '<tr><td>' + a.id + '</td><td>' + a.name + '</td><td>' + a.supplier + '</td><td>' + a.catalog + '</td><td>' + a.host + '</td><td>' + a.wbDilution + '</td><td>' + a.ipAmount + '</td><td>' + (a.rrid || '') + '</td></tr>';
+    });
+    html += '</tbody></table>';
+    html += '<p style="margin-top:20px;color:#667eea;font-weight:600;">Now open index.html and click the Antibodies tab!</p>';
+    
+    document.getElementById('result').innerHTML = html;
+}
+</script>
+</body></html>

@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Import Reagents Data</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #f5f5f5;
+            padding: 20px;
+            line-height: 1.6;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            padding: 30px;
+        }
+        h1 { color: #333; margin-bottom: 10px; }
+        .subtitle { color: #666; margin-bottom: 20px; }
+        .stats {
+            display: flex;
+            gap: 20px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+        .stat-box {
+            background: #e8f4fd;
+            padding: 15px 25px;
+            border-radius: 8px;
+            text-align: center;
+        }
+        .stat-box .number { font-size: 2em; font-weight: bold; color: #2196F3; }
+        .stat-box .label { color: #666; font-size: 0.9em; }
+        .warning {
+            background: #fff3e0;
+            border-left: 4px solid #ff9800;
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 0 8px 8px 0;
+        }
+        .success {
+            background: #e8f5e9;
+            border-left: 4px solid #4caf50;
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 0 8px 8px 0;
+        }
+        .btn {
+            padding: 12px 30px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 1em;
+            margin: 5px;
+            transition: all 0.2s;
+        }
+        .btn-primary {
+            background: #2196F3;
+            color: white;
+        }
+        .btn-primary:hover { background: #1976D2; }
+        .btn-danger {
+            background: #f44336;
+            color: white;
+        }
+        .btn-danger:hover { background: #d32f2f; }
+        .btn-secondary {
+            background: #9e9e9e;
+            color: white;
+        }
+        .btn-secondary:hover { background: #757575; }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+            font-size: 0.9em;
+        }
+        th, td {
+            padding: 10px;
+            text-align: left;
+            border-bottom: 1px solid #eee;
+        }
+        th {
+            background: #f8f9fa;
+            font-weight: 600;
+            position: sticky;
+            top: 0;
+        }
+        tr:hover { background: #f5f5f5; }
+        .table-container {
+            max-height: 500px;
+            overflow-y: auto;
+            border: 1px solid #eee;
+            border-radius: 8px;
+        }
+        .empty { color: #999; font-style: italic; }
+        .actions { margin-top: 20px; }
+        #status { margin-top: 15px; padding: 10px; border-radius: 4px; display: none; }
+        .cleaning-notes {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 20px 0;
+        }
+        .cleaning-notes h3 { margin-bottom: 10px; }
+        .cleaning-notes ul { margin-left: 20px; }
+        .cleaning-notes li { margin: 5px 0; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🧪 Import Reagents Data</h1>
+        <p class="subtitle">Cleaned data from Reagents.xlsx ready to import into Lab Inventory</p>
+        
+        <div class="stats">
+            <div class="stat-box">
+                <div class="number" id="totalCount">218</div>
+                <div class="label">Total Reagents</div>
+            </div>
+            <div class="stat-box">
+                <div class="number" id="withVendor">0</div>
+                <div class="label">With Vendor Info</div>
+            </div>
+            <div class="stat-box">
+                <div class="number" id="withCatalog">0</div>
+                <div class="label">With Catalog #</div>
+            </div>
+        </div>
+
+        <div class="cleaning-notes">
+            <h3>Data Cleaning Applied:</h3>
+            <ul>
+                <li><strong>Duplicates removed:</strong> DTT (row 101), SP6 Polymerase (row 201)</li>
+                <li><strong>Merged columns parsed:</strong> ~40 entries with vendor/catalog merged (e.g., "Sigma #51280" → Vendor: Sigma, Cat#: 51280)</li>
+                <li><strong>Swapped columns fixed:</strong> CaptivA® Protein A Affinity Resin (Vendor↔Catalog swapped)</li>
+                <li><strong>Corrected entry:</strong> Rabbit Reticulocyte Lysate Mix (Vendor: Green Hectares, Cat#: standard 2:1)</li>
+                <li><strong>Empty row removed:</strong> Row 72</li>
+                <li><strong>Storage column added:</strong> Empty, ready for you to populate</li>
+            </ul>
+        </div>
+
+        <div class="warning" id="existingWarning" style="display:none;">
+            ⚠️ <strong>Warning:</strong> You already have <span id="existingCount">0</span> reagents in your database. 
+            Importing will add to or replace your existing data.
+        </div>
+
+        <div class="actions">
+            <button class="btn btn-primary" onclick="importData()">📥 Import All Reagents</button>
+            <button class="btn btn-secondary" onclick="previewData()">👁️ Preview Data</button>
+            <button class="btn btn-danger" onclick="clearExisting()">🗑️ Clear Existing Data</button>
+        </div>
+
+        <div id="status"></div>
+
+        <div class="table-container" id="previewContainer" style="display:none;">
+            <table>
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Name</th>
+                        <th>Vendor</th>
+                        <th>Catalog #</th>
+                        <th>Storage</th>
+                        <th>Notes</th>
+                    </tr>
+                </thead>
+                <tbody id="previewBody"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        // Cleaned reagent data
+        const reagentData = [{"name": "Bismaleimidohexane (BMH)", "vendor": "Thermo", "catalog": "22330", "storage": "", "notes": ""}, {"name": "EasyTag L-[35S]-Methionine", "vendor": "Perkin Elmer", "catalog": "NEG709A001MC", "storage": "", "notes": ""}, {"name": "m7G(5')ppp(5')G RNA Cap Structure Analog", "vendor": "New England Biolabs", "catalog": "S1404L", "storage": "", "notes": ""}, {"name": "RNasin® Ribonuclease Inhibitor", "vendor": "Promega", "catalog": "N2515", "storage": "", "notes": ""}, {"name": "Amino acid kit", "vendor": "Promega", "catalog": "L9961/L996B", "storage": "", "notes": ""}, {"name": "SP6 Polymerase", "vendor": "NEB", "catalog": "M0207L", "storage": "", "notes": ""}, {"name": "Creatine kinase", "vendor": "Roche", "catalog": "CK-RO, SKU# 10127566001", "storage": "", "notes": ""}, {"name": "Creatine phosphate", "vendor": "Roche", "catalog": "CRPHO-RO, SKU# 10621714001", "storage": "", "notes": ""}, {"name": "SuperSignal West Pico Chemiluminescent substrate", "vendor": "Thermo Fisher", "catalog": "34080", "storage": "", "notes": ""}, {"name": "Rabbit Reticulocyte Lysate Mix", "vendor": "Green Hectares", "catalog": "standard 2:1", "storage": "", "notes": ""}, {"name": "DMEM, high glucose, GlutaMAX, pyruvate", "vendor": "Gibco", "catalog": "10569-010", "storage": "", "notes": ""}, {"name": "PonceauS Solution", "vendor": "Sigma-Aldrich", "catalog": "P-7170-1L", "storage": "", "notes": ""}, {"name": "TransIT 293", "vendor": "Mirus", "catalog": "MIR 2705", "storage": "", "notes": ""}, {"name": "NEBuilder® HiFi DNA Assembly Master Mix", "vendor": "NEB", "catalog": "E2621L", "storage": "", "notes": ""}, {"name": "Lipofectamine™ RNAiMAX transfection reagent", "vendor": "Invitrogen", "catalog": "13778075", "storage": "", "notes": ""}, {"name": "Spermidine", "vendor": "Sigma", "catalog": "S0266", "storage": "", "notes": ""}, {"name": "ATP", "vendor": "Roche", "catalog": "ATPDS-RO, SKU#10519979001", "storage": "", "notes": ""}, {"name": "UTP", "vendor": "Sigma", "catalog": "U6875", "storage": "", "notes": ""}, {"name": "CTP", "vendor": "Sigma", "catalog": "C1506", "storage": "", "notes": ""}, {"name": "GTP", "vendor": "Roche", "catalog": "10106399001", "storage": "", "notes": ""}, {"name": "GMPCPP", "vendor": "Jena Bioscience", "catalog": "NU-405S", "storage": "", "notes": ""}, {"name": "Nuclease S7", "vendor": "Roche", "catalog": "10107921001", "storage": "", "notes": ""}, {"name": "RNaseA", "vendor": "Thermo Scientific", "catalog": "EN0531", "storage": "", "notes": ""}, {"name": "Benzonase", "vendor": "Millipore", "catalog": "E1014", "storage": "", "notes": ""}, {"name": "SMPH (Succinimidyl 6-((beta-maleimidopropionamido)hexanoate))", "vendor": "Thermo Scientific", "catalog": "22363", "storage": "", "notes": ""}, {"name": "ANTI-FLAG® M2 Affinity Gel", "vendor": "Millipore", "catalog": "A2220", "storage": "", "notes": ""}, {"name": "CaptivA® Protein A Affinity Resin", "vendor": "Repligen", "catalog": "CA-HF-0100", "storage": "", "notes": ""}, {"name": "Pierce™ Protein G Agarose", "vendor": "Thermo Scientific", "catalog": "20397", "storage": "", "notes": ""}, {"name": "PNGase F", "vendor": "NEB", "catalog": "P0704S", "storage": "", "notes": ""}, {"name": "SYPRO™ Ruby", "vendor": "Invitrogen", "catalog": "S12000", "storage": "", "notes": ""}, {"name": "Proteinase K", "vendor": "Fisher", "catalog": "BP1700-100", "storage": "", "notes": ""}, {"name": "Ethanol Absolute AnalaR 2.5lt", "vendor": "Honeywell", "catalog": "32221", "storage": "", "notes": ""}, {"name": "Methanol AnalaR 2.5lt", "vendor": "Fisher", "catalog": "10284580", "storage": "", "notes": ""}, {"name": "Hydrochloric Acid Aristar 500ml", "vendor": "Fisher", "catalog": "10053023", "storage": "", "notes": ""}, {"name": "Acetic Acid 100% Normapur 2.5lt", "vendor": "VWR", "catalog": "20104.334", "storage": "", "notes": ""}, {"name": "Agarose Hi-Pure Low EEO 100g", "vendor": "Bio Gene Ltd", "catalog": "300-200", "storage": "", "notes": ""}, {"name": "Trizma Base Reagent Grade 1Kg", "vendor": "Sigma-Aldrich", "catalog": "T1503-1KG", "storage": "", "notes": ""}, {"name": "Coomassie R250", "vendor": "VWR", "catalog": "1.12553.0025", "storage": "", "notes": ""}, {"name": "DAPI", "vendor": "Sigma", "catalog": "D9542-1MG", "storage": "", "notes": ""}, {"name": "DTT", "vendor": "Generon", "catalog": "DB0058-25g", "storage": "", "notes": ""}, {"name": "FBS tet-free", "vendor": "Labtech International", "catalog": "FB-1001T/500", "storage": "", "notes": ""}, {"name": "QuickLigase", "vendor": "New England Biolabs", "catalog": "M2200L", "storage": "", "notes": ""}, {"name": "SDS, 20%", "vendor": "Fisher", "catalog": "10607443", "storage": "", "notes": ""}, {"name": "Tricene", "vendor": "Thermo", "catalog": "327830050", "storage": "", "notes": ""}, {"name": "30% Acrylamide/Bis 37.5:1", "vendor": "Severn", "catalog": "20-2100-05", "storage": "", "notes": ""}, {"name": "35S Methionine", "vendor": "Perkin Elmer", "catalog": "NEG009A", "storage": "", "notes": ""}, {"name": "40% Acrylamide/Bis 29:1", "vendor": "Severn", "catalog": "20-3500-05", "storage": "", "notes": ""}, {"name": "5x Tris/Glycine Running Buffer NO SDS", "vendor": "", "catalog": "", "storage": "", "notes": ""}, {"name": "Acceptor Peptide", "vendor": "", "catalog": "", "storage": "", "notes": ""}, {"name": "Acetic Acid 100%", "vendor": "", "catalog": "", "storage": "", "notes": ""}, {"name": "Acetone", "vendor": "Stores", "catalog": "", "storage": "", "notes": ""}, {"name": "Affi-Gel Protein A Gel", "vendor": "", "catalog": "", "storage": "", "notes": ""}, {"name": "Agarose Beads, 4% Crosslinked CLA4B", "vendor": "", "catalog": "", "storage": "", "notes": ""}, {"name": "Agarose, Anti-FLAG M2 Affinity Gel", "vendor": "Sigma", "catalog": "A22220-10ml", "storage": "", "notes": ""}, {"name": "Agarose, Aminobutyl", "vendor": "", "catalog": "", "storage": "", "notes": ""}, {"name": "Agarose, Aminohexyl", "vendor": "", "catalog": "", "storage": "", "notes": ""}, {"name": "Agarose, Aminopentyl", "vendor": "", "catalog": "", "storage": "", "notes": ""}, {"name": "Agarose, Avidin", "vendor": "Pierce", "catalog": "", "storage": "", "notes": ""}, {"name": "Agarose Beads, Immobilized Protein G", "vendor": "Thermo Scientific (Pierce)", "catalog": "20397", "storage": "", "notes": ""}, {"name": "Agarose, Calmodulin", "vendor": "Sigma", "catalog": "P4385", "storage": "", "notes": ""}, {"name": "Agarose Powder - Ultra-Pure", "vendor": "Stores", "catalog": "", "storage": "", "notes": ""}, {"name": "Alpha-Lactose Monohydrate", "vendor": "Sigma", "catalog": "L2643", "storage": "", "notes": ""}, {"name": "Ammonium Persulfate APS", "vendor": "", "catalog": "", "storage": "", "notes": ""}, {"name": "Ammonium Sulfate", "vendor": "", "catalog": "", "storage": "", "notes": ""}, {"name": "Ampicillin Stock, 100 mg/ml", "vendor": "", "catalog": "", "storage": "", "notes": ""}, {"name": "Ampiillin Powder", "vendor": "", "catalog": "", "storage": "", "notes": ""}, {"name": "Antibodies - Secondary", "vendor": "", "catalog": "", "storage": "", "notes": ""}, {"name": "Antibodies - Western Blot", "vendor": "", "catalog": "", "storage": "", "notes": ""}, {"name": "BamH1", "vendor": "NEB", "catalog": "", "storage": "", "notes": ""}, {"name": "Big CHAP Deoxy", "vendor": "", "catalog": "", "storage": "", "notes": ""}, {"name": "BioBeads SM-2 Adsorbent", "vendor": "Bio-Rad", "catalog": "152-8920", "storage": "", "notes": ""}, {"name": "Bgl II", "vendor": "NEB", "catalog": "", "storage": "", "notes": ""}, {"name": "BL21 (DE3) pLys Competent Cells", "vendor": "", "catalog": "", "storage": "", "notes": ""}, {"name": "Boric Acid", "vendor": "", "catalog": "", "storage": "", "notes": ""}, {"name": "Bradford Solution", "vendor": "", "catalog": "", "storage": "", "notes": ""}, {"name": "Bromophenol Blue", "vendor": "Fisher Scientific", "catalog": "B/P620/44", "storage": "", "notes": ""}, {"name": "Bsg I", "vendor": "NEB", "catalog": "", "storage": "", "notes": ""}, {"name": "Calcium Cloride CaCl2", "vendor": "Media Kitchen", "catalog": "", "storage": "", "notes": ""}, {"name": "CAP Diguanosine Triphosphate CA", "vendor": "NEB", "catalog": "S1404L", "storage": "", "notes": ""}, {"name": "Chymotrysin, Sequencing Grade", "vendor": "", "catalog": "", "storage": "", "notes": ""}, {"name": "Calf Intestinal Alkaline Phosphatase (CIP)", "vendor": "Roche", "catalog": "", "storage": "", "notes": ""}, {"name": "Chloramphenicol Powder", "vendor": "Stores", "catalog": "", "storage": "", "notes": ""}, {"name": "Chloramphenicol Stock: 25 mg/ml in 100% EtOH", "vendor": "", "catalog": "", "storage": "", "notes": ""}, {"name": "Competent Cells", "vendor": "", "catalog": "", "storage": "", "notes": ""}, {"name": "Competant Cells, BL21 (DE3) CaCl Induced", "vendor": "", "catalog": "", "storage": "", "notes": ""}, {"name": "Competent Cells, BL21 (DE3) Competent Cells", "vendor": "NEB", "catalog": "", "storage": "", "notes": ""}, {"name": "Competent Cells BL21 (DE3) pLys Competent Cells", "vendor": "", "catalog": "", "storage": "", "notes": ""}, {"name": "Competent Cells, BL21 (DE3) pLys CaCl induced", "vendor": "", "catalog": "", "storage": "", "notes": ""}, {"name": "Competant Cells, DH5α CaCl induced", "vendor": "", "catalog": "", "storage": "", "notes": ""}, {"name": "Competant Cells, DH5α", "vendor": "Invitrogen", "catalog": "18265-017", "storage": "", "notes": ""}, {"name": "Competant Cells, XL1 Blue", "vendor": "", "catalog": "", "storage": "", "notes": ""}, {"name": "Coomassie Brilliant Blue, R-250", "vendor": "", "catalog": "", "storage": "", "notes": ""}, {"name": "Creatine Kinase CK", "vendor": "Roche", "catalog": "127566", "storage": "", "notes": ""}, {"name": "D-Desthiobiotin, 1 g", "vendor": "IBA", "catalog": "2-1000-002", "storage": "", "notes": ""}, {"name": "DH5α CaCl2 Competent Cells", "vendor": "Made October 2011", "catalog": "", "storage": "", "notes": ""}, {"name": "Digitonin", "vendor": "", "catalog": "", "storage": "", "notes": ""}, {"name": "DMP Dimethyl Pimelidate Dihydrochloride (solid)", "vendor": "Sigma", "catalog": "D8388", "storage": "", "notes": ""}, {"name": "DMSO", "vendor": "", "catalog": "", "storage": "", "notes": ""}, {"name": "Dpn I", "vendor": "NEB", "catalog": "", "storage": "", "notes": ""}, {"name": "DTT aliquots - 1M in H2O", "vendor": "", "catalog": "", "storage": "", "notes": ""}, {"name": "EcoR1", "vendor": "NEB", "catalog": "", "storage": "", "notes": ""}, {"name": "EDTA - 0.1M Soln pH 7.4", "vendor": "Media Kitchen", "catalog": "", "storage": "", "notes": ""}, {"name": "EGTA", "vendor": "", "catalog": "", "storage": "", "notes": ""}, {"name": "Endoproteinase Lys-C, Sequencing Grade", "vendor": "", "catalog": "", "storage": "", "notes": ""}, {"name": "Ethanol 96%", "vendor": "Fisher Scientific", "catalog": "E/0551DF/17", "storage": "", "notes": ""}, {"name": "Ethanol Absolute 99.8%", "vendor": "Fisher Scientific", "catalog": "E/0665DF/17", "storage": "", "notes": ""}, {"name": "Ethanolamine", "vendor": "", "catalog": "", "storage": "", "notes": ""}, {"name": "Ethylene Glycol", "vendor": "", "catalog": "", "storage": "", "notes": ""}, {"name": "Fluoreporter FITC", "vendor": "", "catalog": "", "storage": "", "notes": ""}, {"name": "Formaldehyde 36%", "vendor": "", "catalog": "", "storage": "", "notes": ""}, {"name": "Glutathione in H2O (reduced)", "vendor": "", "catalog": "", "storage": "", "notes": ""}, {"name": "Glycerol", "vendor": "", "catalog": "", "storage": "", "notes": ""}, {"name": "GST-Ubiquitin Activating Enzyme (UBE1), human recombinant", "vendor": "Boston Biochem", "catalog": "E-306", "storage": "", "notes": ""}, {"name": "Guanidine Hydrochloride", "vendor": "", "catalog": "", "storage": "", "notes": ""}, {"name": "H2O, DEPC", "vendor": "Media Kitchen", "catalog": "", "storage": "", "notes": ""}, {"name": "H2O, Distilled", "vendor": "Media Kitchen", "catalog": "", "storage": "", "notes": ""}, {"name": "HEMIN", "vendor": "Sigma", "catalog": "51280", "storage": "", "notes": ""}, {"name": "HEPES", "vendor": "", "catalog": "", "storage": "", "notes": ""}, {"name": "Hi-Pure Low EEO Agarose", "vendor": "biogene.com", "catalog": "", "storage": "", "notes": ""}, {"name": "Hydrochloric Acid HCl 37%", "vendor": "", "catalog": "", "storage": "", "notes": ""}, {"name": "Imidazole", "vendor": "", "catalog": "", "storage": "", "notes": ""}, {"name": "Isopropyl-thio-2-D-galactopyranoside - IPTG", "vendor": "", "catalog": "", "storage": "", "notes": ""}, {"name": "Isopropanol (Propan-2-ol)", "vendor": "", "catalog": "", "storage": "", "notes": ""}, {"name": "Kanamycin Powder", "vendor": "", "catalog": "", "storage": "", "notes": ""}, {"name": "Kanamycin Stock, 50mg/ml", "vendor": "", "catalog": "", "storage": "", "notes": ""}, {"name": "Kpn I", "vendor": "NEB", "catalog": "", "storage": "", "notes": ""}, {"name": "L-amino acids", "vendor": "", "catalog": "", "storage": "", "notes": ""}, {"name": "Loading Buffer, 5X DNA", "vendor": "", "catalog": "", "storage": "", "notes": ""}, {"name": "Loading Buffer, 5X Protein", "vendor": "", "catalog": "", "storage": "", "notes": ""}, {"name": "Magnesium Acetate MgAc", "vendor": "", "catalog": "", "storage": "", "notes": ""}, {"name": "Magnesium Chloride MgCl2", "vendor": "Media Kitchen", "catalog": "", "storage": "", "notes": ""}, {"name": "Marker - Protein Prestained 7-175 kDa", "vendor": "NEB", "catalog": "P7708L", "storage": "", "notes": ""}, {"name": "Marker - Protein", "vendor": "", "catalog": "", "storage": "", "notes": ""}, {"name": "Marker, DNA 123 ladder in 5x loading buffer", "vendor": "", "catalog": "", "storage": "", "notes": ""}, {"name": "Marker, DNA 1kb ladder", "vendor": "", "catalog": "", "storage": "", "notes": ""}, {"name": "Marker, DNA 1Kb ladder in 5x loading buffer", "vendor": "Bio-Rad", "catalog": "", "storage": "", "notes": ""}, {"name": "Membranes", "vendor": "", "catalog": "", "storage": "", "notes": ""}, {"name": "Methanol", "vendor": "Stores", "catalog": "", "storage": "", "notes": ""}, {"name": "Micrococcal Nuclease 15,000 u/vial", "vendor": "Calbiochem", "catalog": "492899", "storage": "", "notes": ""}, {"name": "Micrococcal Nuclease 2x10 6 gel untis/ml", "vendor": "NEB", "catalog": "M0247S", "storage": "", "notes": ""}, {"name": "NcoI (10000/ml)", "vendor": "NEB", "catalog": "", "storage": "", "notes": ""}, {"name": "NdeI 4,000 U (20,000 U/ml)", "vendor": "NEB", "catalog": "R0111S", "storage": "", "notes": ""}, {"name": "Nitric Acid", "vendor": "", "catalog": "", "storage": "", "notes": ""}, {"name": "Nitrocellulose Membrane", "vendor": "", "catalog": "", "storage": "", "notes": "CAS 9004-70-0"}, {"name": "NTP stock - ATP", "vendor": "Roche", "catalog": "10519979001", "storage": "", "notes": ""}, {"name": "NTP stock - CTP", "vendor": "Roche", "catalog": "10103845001", "storage": "", "notes": ""}, {"name": "NTP stock - GTP", "vendor": "Roche", "catalog": "10106399001", "storage": "", "notes": ""}, {"name": "NTP stock - UTP", "vendor": "Roche", "catalog": "10110221001", "storage": "", "notes": ""}, {"name": "Pac I", "vendor": "NEB", "catalog": "", "storage": "", "notes": ""}, {"name": "PBS pH 7.4", "vendor": "Media Kitchen", "catalog": "", "storage": "", "notes": ""}, {"name": "Phusion High-Fidelity DNA Polymeras", "vendor": "NEB", "catalog": "M0530S", "storage": "", "notes": ""}, {"name": "PMSF", "vendor": "", "catalog": "", "storage": "", "notes": ""}, {"name": "Ponceau S Solution", "vendor": "", "catalog": "", "storage": "", "notes": ""}, {"name": "Potassium Acetate Kac", "vendor": "", "catalog": "", "storage": "", "notes": ""}, {"name": "Potassium Chloride KCl", "vendor": "", "catalog": "", "storage": "", "notes": ""}, {"name": "Potassium Dichromate", "vendor": "", "catalog": "", "storage": "", "notes": ""}, {"name": "Potassium Hydroxide KOH", "vendor": "", "catalog": "", "storage": "", "notes": ""}, {"name": "Powdered Milk", "vendor": "", "catalog": "", "storage": "", "notes": ""}, {"name": "Precision Pro", "vendor": "", "catalog": "", "storage": "", "notes": ""}, {"name": "Primocin", "vendor": "Amaxa", "catalog": "VZA-1021", "storage": "", "notes": ""}, {"name": "Propidium Iodide in H2O", "vendor": "", "catalog": "", "storage": "", "notes": ""}, {"name": "Protease Inhibitors, EDTA-free", "vendor": "", "catalog": "", "storage": "", "notes": ""}, {"name": "Protein A Affinity Resin", "vendor": "CaptivA PriMAB, Repligen BioProcessing", "catalog": "", "storage": "", "notes": ""}, {"name": "Protein A Agarose", "vendor": "Bio-Rad", "catalog": "", "storage": "", "notes": ""}, {"name": "Protein G resin", "vendor": "", "catalog": "", "storage": "", "notes": ""}, {"name": "Protein Disulfide Isomerase, from Bovine Liver", "vendor": "Sigma", "catalog": "P3818", "storage": "", "notes": ""}, {"name": "Protein G, Immobilized", "vendor": "", "catalog": "", "storage": "", "notes": ""}, {"name": "Proteinase K PK, 10mg/ml", "vendor": "", "catalog": "", "storage": "", "notes": ""}, {"name": "PstI", "vendor": "NEB", "catalog": "", "storage": "", "notes": ""}, {"name": "RNAse A", "vendor": "", "catalog": "", "storage": "", "notes": ""}, {"name": "RNAsin, Rnase Inhibitor", "vendor": "Promega", "catalog": "N251", "storage": "", "notes": ""}, {"name": "Rosetta 2(de3)pLys Competent Cells", "vendor": "Novagen", "catalog": "", "storage": "", "notes": ""}, {"name": "SacI", "vendor": "NEB", "catalog": "", "storage": "", "notes": ""}, {"name": "SalI", "vendor": "NEB", "catalog": "", "storage": "", "notes": ""}, {"name": "SDS 10%", "vendor": "", "catalog": "", "storage": "", "notes": ""}, {"name": "SDS 20%", "vendor": "", "catalog": "", "storage": "", "notes": ""}, {"name": "Secondary Antibodies", "vendor": "", "catalog": "", "storage": "", "notes": ""}, {"name": "Sepahrose, DEAE", "vendor": "", "catalog": "", "storage": "", "notes": ""}, {"name": "Sephacryl S-300", "vendor": "", "catalog": "", "storage": "", "notes": ""}, {"name": "Sepharose, Chelating", "vendor": "", "catalog": "", "storage": "", "notes": ""}, {"name": "Sepharose, CM", "vendor": "", "catalog": "", "storage": "", "notes": ""}, {"name": "Sepharose, ConA", "vendor": "", "catalog": "", "storage": "", "notes": ""}, {"name": "Sepharose, Cyanogen Bromide", "vendor": "", "catalog": "", "storage": "", "notes": ""}, {"name": "Sepharose, Heparin", "vendor": "", "catalog": "", "storage": "", "notes": ""}, {"name": "Sepharose, Phenyl", "vendor": "", "catalog": "", "storage": "", "notes": ""}, {"name": "Sepharose, Q", "vendor": "", "catalog": "", "storage": "", "notes": ""}, {"name": "Sepharose, SP", "vendor": "", "catalog": "", "storage": "", "notes": ""}, {"name": "Sepharose, Strep-Tactin", "vendor": "Fisher Scientific", "catalog": "IB212010102-1201-010", "storage": "", "notes": ""}, {"name": "Sepharose, Strep-Tactin HRP Conjugate", "vendor": "Fisher Scientific", "catalog": "IB215020012-1502-001", "storage": "", "notes": ""}, {"name": "Silver Nitrate AgNO3", "vendor": "", "catalog": "", "storage": "", "notes": ""}, {"name": "Sodium Acetate NaAc", "vendor": "", "catalog": "", "storage": "", "notes": ""}, {"name": "Sodium Azide NaAzide", "vendor": "", "catalog": "", "storage": "", "notes": ""}, {"name": "Sodium Borate NaBorate pH 9", "vendor": "", "catalog": "", "storage": "", "notes": ""}, {"name": "Sodium Carbonate NaCO3", "vendor": "", "catalog": "", "storage": "", "notes": ""}, {"name": "Sodium Chloride NaCl", "vendor": "Media Kitchen", "catalog": "", "storage": "", "notes": ""}, {"name": "Sodium Hydroxide NaOH pellets", "vendor": "", "catalog": "", "storage": "", "notes": ""}, {"name": "Sodium Hydroxide 5M soln", "vendor": "", "catalog": "", "storage": "", "notes": ""}, {"name": "Sodium Sulfate Na2SO4", "vendor": "Sigma BPE354-500", "catalog": "", "storage": "", "notes": ""}, {"name": "Spermadine", "vendor": "Sigma", "catalog": "S0266", "storage": "", "notes": ""}, {"name": "Sucrose", "vendor": "", "catalog": "", "storage": "", "notes": ""}, {"name": "SYBR Safe DNA gel stain", "vendor": "Invitrogen", "catalog": "S33102", "storage": "", "notes": ""}, {"name": "T4 Ligase", "vendor": "NEB", "catalog": "", "storage": "", "notes": ""}, {"name": "T7 Polymerase", "vendor": "NEB", "catalog": "", "storage": "", "notes": ""}, {"name": "Taq Polymerase", "vendor": "", "catalog": "", "storage": "", "notes": ""}, {"name": "TEMED N,N,N',N' - Tetramethylethylenediamine", "vendor": "", "catalog": "", "storage": "", "notes": ""}, {"name": "Tev Protease", "vendor": "", "catalog": "", "storage": "", "notes": ""}, {"name": "Trichloroacetic Acid", "vendor": "", "catalog": "", "storage": "", "notes": ""}, {"name": "Tricine", "vendor": "", "catalog": "", "storage": "", "notes": ""}, {"name": "Tris-HCL 1M Tris pH 7.4", "vendor": "Media Kitchen", "catalog": "", "storage": "", "notes": ""}, {"name": "Trypsin Inhibitor", "vendor": "", "catalog": "", "storage": "", "notes": ""}, {"name": "tRNA from calf liver", "vendor": "Sigma", "catalog": "R-4752 100u @15.7 A260u/mg OR Novagen", "storage": "", "notes": ""}, {"name": "Tween 20", "vendor": "", "catalog": "", "storage": "", "notes": ""}, {"name": "UbcH5a, human recombinant", "vendor": "Boston Biochem", "catalog": "E2-616", "storage": "", "notes": ""}, {"name": "Urea", "vendor": "Fisher Scientific", "catalog": "", "storage": "", "notes": ""}, {"name": "XhoI 5,000U (20,000 u/ml)", "vendor": "NEB", "catalog": "R0146S", "storage": "", "notes": ""}, {"name": "XbaI", "vendor": "NEB", "catalog": "", "storage": "", "notes": ""}, {"name": "XmaI", "vendor": "NEB", "catalog": "", "storage": "", "notes": ""}, {"name": "β-mercaptoethanol", "vendor": "", "catalog": "", "storage": "", "notes": ""}];
+
+        // Add IDs to data
+        const dataWithIds = reagentData.map((r, i) => ({
+            id: `RG${String(i + 1).padStart(3, '0')}`,
+            ...r
+        }));
+
+        // Update stats
+        function updateStats() {
+            const withVendor = dataWithIds.filter(r => r.vendor).length;
+            const withCatalog = dataWithIds.filter(r => r.catalog).length;
+            document.getElementById('totalCount').textContent = dataWithIds.length;
+            document.getElementById('withVendor').textContent = withVendor;
+            document.getElementById('withCatalog').textContent = withCatalog;
+
+            // Check existing data
+            const existing = JSON.parse(localStorage.getItem('reagentsData') || '[]');
+            if (existing.length > 0) {
+                document.getElementById('existingWarning').style.display = 'block';
+                document.getElementById('existingCount').textContent = existing.length;
+            }
+        }
+
+        function showStatus(message, type) {
+            const status = document.getElementById('status');
+            status.textContent = message;
+            status.style.display = 'block';
+            status.style.background = type === 'success' ? '#e8f5e9' : '#ffebee';
+            status.style.color = type === 'success' ? '#2e7d32' : '#c62828';
+        }
+
+        function importData() {
+            localStorage.setItem('reagentsData', JSON.stringify(dataWithIds));
+            showStatus(`✅ Successfully imported ${dataWithIds.length} reagents! You can now close this page and use the main Lab Inventory.`, 'success');
+            updateStats();
+        }
+
+        function clearExisting() {
+            if (confirm('Are you sure you want to clear all existing reagent data?')) {
+                localStorage.removeItem('reagentsData');
+                showStatus('🗑️ Existing reagent data cleared.', 'success');
+                document.getElementById('existingWarning').style.display = 'none';
+            }
+        }
+
+        function previewData() {
+            const container = document.getElementById('previewContainer');
+            const tbody = document.getElementById('previewBody');
+            
+            if (container.style.display === 'none') {
+                tbody.innerHTML = dataWithIds.map(r => `
+                    <tr>
+                        <td>${r.id}</td>
+                        <td>${r.name}</td>
+                        <td>${r.vendor || '<span class="empty">-</span>'}</td>
+                        <td>${r.catalog || '<span class="empty">-</span>'}</td>
+                        <td>${r.storage || '<span class="empty">-</span>'}</td>
+                        <td>${r.notes || '<span class="empty">-</span>'}</td>
+                    </tr>
+                `).join('');
+                container.style.display = 'block';
+            } else {
+                container.style.display = 'none';
+            }
+        }
+
+        // Initialize
+        updateStats();
+    </script>
+</body>
+</html>

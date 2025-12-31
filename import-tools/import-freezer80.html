@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Import -80°C Freezer Data</title>
+    <style>
+        body { font-family: -apple-system, sans-serif; background: #f5f5f5; padding: 20px; }
+        .container { max-width: 900px; margin: 0 auto; background: white; border-radius: 8px; padding: 30px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        h1 { color: #1a237e; }
+        .btn { padding: 12px 30px; border: none; border-radius: 6px; cursor: pointer; font-size: 1em; margin: 5px; }
+        .btn-primary { background: #3f51b5; color: white; }
+        .btn-danger { background: #f44336; color: white; }
+        #status { margin-top: 15px; padding: 10px; border-radius: 4px; display: none; }
+        table { width: 100%; border-collapse: collapse; margin: 20px 0; }
+        th, td { padding: 8px; text-align: left; border-bottom: 1px solid #eee; }
+        th { background: #e8eaf6; }
+        .free { color: #4caf50; font-style: italic; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🥶 Import -80°C Freezer Map</h1>
+        <p>6 Towers (A-F) × 7 Shelves from Freezer_Allocations__5_.docx</p>
+        
+        <div style="margin: 20px 0;">
+            <button class="btn btn-primary" onclick="importData()">📥 Import Data</button>
+            <button class="btn btn-danger" onclick="clearData()">🗑️ Clear Existing</button>
+        </div>
+        <div id="status"></div>
+        
+        <table>
+            <thead><tr><th>Tower</th><th>Shelf</th><th>Owner</th><th>Contents</th></tr></thead>
+            <tbody id="preview"></tbody>
+        </table>
+    </div>
+    <script>
+        const data = [
+            {tower:'A',shelf:1,owner:'Zhong',contents:''},
+            {tower:'A',shelf:2,owner:'Zhong',contents:''},
+            {tower:'A',shelf:3,owner:'Zhong',contents:''},
+            {tower:'A',shelf:4,owner:'FREE',contents:''},
+            {tower:'A',shelf:5,owner:'FREE',contents:''},
+            {tower:'A',shelf:6,owner:'FREE',contents:''},
+            {tower:'A',shelf:7,owner:'Dino',contents:''},
+            {tower:'B',shelf:1,owner:'NEB & homemade PURE IVT systems',contents:''},
+            {tower:'B',shelf:2,owner:'CDA',contents:''},
+            {tower:'B',shelf:3,owner:'CDA',contents:''},
+            {tower:'B',shelf:4,owner:'CDA',contents:''},
+            {tower:'B',shelf:5,owner:'Huping',contents:''},
+            {tower:'B',shelf:6,owner:'Huping',contents:''},
+            {tower:'B',shelf:7,owner:'Huping',contents:''},
+            {tower:'C',shelf:1,owner:'PK (blue box)',contents:'COMMUNAL'},
+            {tower:'C',shelf:2,owner:'Ubiquitination reagents',contents:'COMMUNAL'},
+            {tower:'C',shelf:3,owner:'DH5a competent cells (homemade)',contents:'COMMUNAL'},
+            {tower:'C',shelf:4,owner:'T1 & cT2',contents:'COMMUNAL'},
+            {tower:'C',shelf:5,owner:'cT2∆T (no tRNA)',contents:'COMMUNAL'},
+            {tower:'C',shelf:6,owner:'Nucleased microsomes',contents:'COMMUNAL'},
+            {tower:'C',shelf:7,owner:'Ubiquitin box',contents:'COMMUNAL'},
+            {tower:'D',shelf:1,owner:'Ryan',contents:''},
+            {tower:'D',shelf:2,owner:'Ryan',contents:''},
+            {tower:'D',shelf:3,owner:'Zhong',contents:''},
+            {tower:'D',shelf:4,owner:'Zhong',contents:''},
+            {tower:'D',shelf:5,owner:'Zhong',contents:''},
+            {tower:'D',shelf:6,owner:'Julia',contents:''},
+            {tower:'D',shelf:7,owner:'Julia',contents:''},
+            {tower:'E',shelf:1,owner:'Eszter',contents:''},
+            {tower:'E',shelf:2,owner:'Eszter',contents:''},
+            {tower:'E',shelf:3,owner:'Eszter',contents:''},
+            {tower:'E',shelf:4,owner:'Verena',contents:''},
+            {tower:'E',shelf:5,owner:'Julia',contents:''},
+            {tower:'E',shelf:6,owner:'FREE',contents:''},
+            {tower:'E',shelf:7,owner:'FREE',contents:''},
+            {tower:'F',shelf:1,owner:'Haoxi',contents:''},
+            {tower:'F',shelf:2,owner:'Haoxi',contents:''},
+            {tower:'F',shelf:3,owner:'Haoxi',contents:''},
+            {tower:'F',shelf:4,owner:'Sec61 inhib + TMCO1/Opti antibodies',contents:''},
+            {tower:'F',shelf:5,owner:'Ryan',contents:''},
+            {tower:'F',shelf:6,owner:'Julia',contents:''},
+            {tower:'F',shelf:7,owner:'Broken',contents:''}
+        ].map(d => ({...d, id: `F80-${d.tower}${d.shelf}`, notes: ''}));
+
+        document.getElementById('preview').innerHTML = data.map(d => 
+            `<tr><td>Tower ${d.tower}</td><td>${d.shelf}</td><td class="${d.owner==='FREE'?'free':''}">${d.owner}</td><td>${d.contents}</td></tr>`
+        ).join('');
+
+        function importData() {
+            localStorage.setItem('freezer80Data', JSON.stringify(data));
+            document.getElementById('status').style.display = 'block';
+            document.getElementById('status').style.background = '#e8f5e9';
+            document.getElementById('status').textContent = '✅ Imported ' + data.length + ' entries!';
+        }
+        function clearData() {
+            localStorage.removeItem('freezer80Data');
+            document.getElementById('status').style.display = 'block';
+            document.getElementById('status').style.background = '#ffebee';
+            document.getElementById('status').textContent = '🗑️ Cleared!';
+        }
+    </script>
+</body>
+</html>
